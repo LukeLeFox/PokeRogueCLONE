@@ -172,7 +172,7 @@ export default class BattleScene extends SceneBase {
 	private bgmResumeTimer: Phaser.Time.TimerEvent;
 	private bgmCache: Set<string> = new Set();
 	private playTimeTimer: Phaser.Time.TimerEvent;
-
+	
 	public rngCounter: integer = 0;
 	public rngSeedOverride: string = '';
 	public rngOffset: integer = 0;
