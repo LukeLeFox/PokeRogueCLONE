@@ -1739,6 +1739,17 @@ export class MultCritAbAttr extends AbAttr {
 }
 
 
+export class CritIfTargetPoisonedAbAttr extends AbAttr {
+  apply(pokemon: Pokemon, passive: boolean, cancelled: Utils.BooleanHolder, args: any[]): boolean {
+    const target = (args[1] as Pokemon);
+    if(!(target.status.effect === StatusEffect.TOXIC || target.status.effect === StatusEffect.POISON))
+      return false;
+
+    (args[0] as Utils.BooleanHolder).value = true;
+    return true;
+  }
+}
+
 export class BlockNonDirectDamageAbAttr extends AbAttr {
   apply(pokemon: Pokemon, passive: boolean, cancelled: Utils.BooleanHolder, args: any[]): boolean {
     cancelled.value = true;
@@ -3307,7 +3318,7 @@ export function initAbilities() {
     new Ability(Abilities.WATER_COMPACTION, 7)
       .attr(PostDefendStatChangeAbAttr, (target, user, move) => move.type === Type.WATER && move.category !== MoveCategory.STATUS, BattleStat.DEF, 2),
     new Ability(Abilities.MERCILESS, 7)
-      .unimplemented(),
+      .attr(CritIfTargetPoisonedAbAttr),
     new Ability(Abilities.SHIELDS_DOWN, 7)
       .attr(PostBattleInitFormChangeAbAttr, p => p.formIndex % 7 + (p.getHpRatio() <= 0.5 ? 7 : 0))
       .attr(PostSummonFormChangeAbAttr, p => p.formIndex % 7 + (p.getHpRatio() <= 0.5 ? 7 : 0))
