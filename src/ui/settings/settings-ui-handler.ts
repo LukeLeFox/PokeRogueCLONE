@@ -1,11 +1,11 @@
-import BattleScene from "../battle-scene";
-import { Setting, reloadSettings, settingDefaults, settingOptions } from "../system/settings";
-import { hasTouchscreen, isMobile } from "../touch-controls";
-import { TextStyle, addTextObject } from "./text";
-import { Mode } from "./ui";
-import UiHandler from "./ui-handler";
-import { addWindow } from "./ui-theme";
-import {Button} from "../enums/buttons";
+import BattleScene from "../../battle-scene";
+import { Setting, reloadSettings, settingDefaults, settingOptions } from "../../system/settings";
+import { hasTouchscreen, isMobile } from "../../touch-controls";
+import { TextStyle, addTextObject } from "../text";
+import { Mode } from "../ui";
+import UiHandler from "../ui-handler";
+import { addWindow } from "../ui-theme";
+import {Button} from "../../enums/buttons";
 
 export default class SettingsUiHandler extends UiHandler {
   private settingsContainer: Phaser.GameObjects.Container;
@@ -42,9 +42,17 @@ export default class SettingsUiHandler extends UiHandler {
     const headerBg = addWindow(this.scene, 0, 0, (this.scene.game.canvas.width / 6) - 2, 24);
     headerBg.setOrigin(0, 0);
 
-    const headerText = addTextObject(this.scene, 0, 0, 'Options', TextStyle.SETTINGS_LABEL);
+    const headerText = addTextObject(this.scene, 0, 0, 'General', TextStyle.SETTINGS_SELECTED);
     headerText.setOrigin(0, 0);
     headerText.setPositionRelative(headerBg, 8, 4);
+
+    const gamepadText = addTextObject(this.scene, 0, 0, 'Gamepad', TextStyle.SETTINGS_LABEL);
+    gamepadText.setOrigin(0, 0);
+    gamepadText.setPositionRelative(headerBg, 50, 4);
+
+    const keyboardText = addTextObject(this.scene, 0, 0, 'Keyboard', TextStyle.SETTINGS_LABEL);
+    keyboardText.setOrigin(0, 0);
+    keyboardText.setPositionRelative(headerBg, 97, 4);
 
     this.optionsBg = addWindow(this.scene, 0, headerBg.height, (this.scene.game.canvas.width / 6) - 2, (this.scene.game.canvas.height / 6) - headerBg.height - 2);
     this.optionsBg.setOrigin(0, 0);
@@ -92,6 +100,8 @@ export default class SettingsUiHandler extends UiHandler {
 
     this.settingsContainer.add(headerBg);
     this.settingsContainer.add(headerText);
+    this.settingsContainer.add(gamepadText);
+    this.settingsContainer.add(keyboardText);
     this.settingsContainer.add(this.optionsBg);
     this.settingsContainer.add(this.optionsContainer);
 
@@ -181,6 +191,14 @@ export default class SettingsUiHandler extends UiHandler {
           // Moves the option cursor right, if possible.
           if (this.optionCursors[cursor] < this.optionValueLabels[cursor].length - 1)
             success = this.setOptionCursor(cursor, this.optionCursors[cursor] + 1, true);
+          break;
+        case Button.CYCLE_FORM: // to the left
+          this.scene.ui.setMode(Mode.SETTINGS_KEYBOARD)
+            success = true;
+          break;
+        case Button.CYCLE_SHINY: // to the right
+          this.scene.ui.setMode(Mode.SETTINGS_GAMEPAD)
+          success = true;
           break;
       }
     }

@@ -4,8 +4,9 @@ import {InputsController} from "./inputs-controller";
 import MessageUiHandler from "./ui/message-ui-handler";
 import StarterSelectUiHandler from "./ui/starter-select-ui-handler";
 import {Setting, settingOptions} from "./system/settings";
-import SettingsUiHandler from "./ui/settings-ui-handler";
+import SettingsUiHandler from "./ui/settings/settings-ui-handler";
 import {Button} from "./enums/buttons";
+import SettingsGamepadUiHandler from "./ui/settings/settings-gamepad-ui-handler";
 
 export interface ActionKeys {
     [key in Button]: () => void;
@@ -130,7 +131,9 @@ export class UiInputs {
     }
 
     buttonCycleOption(button: Button): void {
-        if (this.scene.ui?.getHandler() instanceof StarterSelectUiHandler) {
+        const whitelist = [StarterSelectUiHandler, SettingsUiHandler, SettingsGamepadUiHandler];
+        const uiHandler = this.scene.ui?.getHandler();
+        if (whitelist.some(handler => uiHandler instanceof handler)) {
             this.scene.ui.processInput(button);
         }
     }

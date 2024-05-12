@@ -29,6 +29,8 @@ import { allMoves } from "../data/move";
 import { TrainerVariant } from "../field/trainer";
 import { OutdatedPhase, ReloadSessionPhase } from "#app/phases";
 import { Variant, variantData } from "#app/data/variant";
+import {setSettingGamepad, SettingGamepad, settingGamepadDefaults} from "./settings-gamepad";
+import {MappingLayout} from "#app/inputs-controller";
 
 const saveKey = 'x0i2O7WRiANTqPmZ'; // Temporary; secure encryption is not yet necessary
 
@@ -228,6 +230,8 @@ export class GameData {
   constructor(scene: BattleScene) {
     this.scene = scene;
     this.loadSettings();
+    this.loadGamepadSettings();
+    this.loadCustomMapping();
     this.trainerId = Utils.randInt(65536);
     this.secretId = Utils.randInt(65536);
     this.starterData = {};
@@ -481,8 +485,42 @@ export class GameData {
         settings[s] = valueIndex;
     });
 
+
     localStorage.setItem('settings', JSON.stringify(settings));
 
+    return true;
+  }
+
+  public saveCustomMapping(gamepadName: string, mapping: MappingLayout): boolean {
+    let customMappings: object = {};
+    if (localStorage.hasOwnProperty('customMapping'))
+      customMappings = JSON.parse(localStorage.getItem('customMapping'));
+    customMappings[gamepadName] = mapping;
+    localStorage.setItem('customMapping', JSON.stringify(customMappings));
+    return true;
+  }
+
+  public loadCustomMapping(): boolean {
+    console.log('loadCustomMapping');
+    if (!localStorage.hasOwnProperty('customMapping'))
+      return false;
+    const customMappings = JSON.parse(localStorage.getItem('customMapping'));
+    for (const key of Object.keys(customMappings))
+      this.scene.inputController.injectConfig(key, customMappings[key]);
+
+  }
+
+  public saveGamepadSetting(setting: SettingGamepad, valueIndex: integer): boolean {
+    let settingsGamepad: object = {};
+    if (localStorage.hasOwnProperty('settingsGamepad'))
+      settingsGamepad = JSON.parse(localStorage.getItem('settingsGamepad'));
+
+    setSettingGamepad(this.scene, setting as SettingGamepad, valueIndex);
+    Object.keys(settingGamepadDefaults).forEach(s => {
+      if (s === setting)
+        settingsGamepad[s] = valueIndex;
+    });
+    localStorage.setItem('settingsGamepad', JSON.stringify(settingsGamepad));
     return true;
   }
 
@@ -496,6 +534,17 @@ export class GameData {
 
     for (let setting of Object.keys(settings))
       setSetting(this.scene, setting as Setting, settings[setting]);
+  }
+
+  private loadGamepadSettings(): boolean {
+    Object.values(SettingGamepad).map(setting => setting as SettingGamepad).forEach(setting => setSettingGamepad(this.scene, setting, settingGamepadDefaults[setting]));
+
+    if (!localStorage.hasOwnProperty('settingsGamepad'))
+      return false;
+    const settingsGamepad = JSON.parse(localStorage.getItem('settingsGamepad'));
+
+    for (let setting of Object.keys(settingsGamepad))
+      setSettingGamepad(this.scene, setting as SettingGamepad, settingsGamepad[setting]);
   }
 
   public saveTutorialFlag(tutorial: Tutorial, flag: boolean): boolean {
