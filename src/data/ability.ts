@@ -712,7 +712,7 @@ export class PostDefendContactApplyStatusEffectAbAttr extends PostDefendAbAttr {
   applyPostDefend(pokemon: Pokemon, passive: boolean, attacker: Pokemon, move: PokemonMove, hitResult: HitResult, args: any[]): boolean {
     if (move.getMove().checkFlag(MoveFlags.MAKES_CONTACT, attacker, pokemon) && !attacker.status && (this.chance === -1 || pokemon.randSeedInt(100) < this.chance)) {
       const effect = this.effects.length === 1 ? this.effects[0] : this.effects[pokemon.randSeedInt(this.effects.length)];
-      return attacker.trySetStatus(effect, true);
+      return attacker.trySetStatus(effect, true, 0, null, pokemon);
     }
 
     return false;
@@ -1138,7 +1138,7 @@ export class PostAttackApplyStatusEffectAbAttr extends PostAttackAbAttr {
   applyPostAttack(pokemon: Pokemon, passive: boolean, attacker: Pokemon, move: PokemonMove, hitResult: HitResult, args: any[]): boolean {
     if (pokemon != attacker && (!this.contactRequired || move.getMove().checkFlag(MoveFlags.MAKES_CONTACT, attacker, pokemon)) && pokemon.randSeedInt(100) < this.chance && !pokemon.status) {
       const effect = this.effects.length === 1 ? this.effects[0] : this.effects[pokemon.randSeedInt(this.effects.length)];
-      return attacker.trySetStatus(effect, true);
+      return attacker.trySetStatus(effect, true, 0, null, pokemon);
     }
 
     return false;
@@ -2562,6 +2562,30 @@ export class IgnoreTypeImmunityAbAttr extends AbAttr {
   }
 }
 
+/**
+ * Ignores the type immunity to Status Effects of the defender if the defender is of a certain type
+ */
+export class IgnoreTypeStatusEffectImmunityAbAttr extends AbAttr {
+  statusEffect: StatusEffect[];
+  defenderType: Type[];
+
+  constructor(statusEffect: StatusEffect[], defenderType: Type[]) {
+    super(true);
+
+    this.statusEffect = statusEffect;
+    this.defenderType = defenderType;
+  }
+
+  apply(pokemon: Pokemon, passive: boolean, cancelled: Utils.BooleanHolder, args: any[]): boolean {
+    if (this.statusEffect.includes(args[0] as StatusEffect) && this.defenderType.includes(args[1] as Type)) {
+      cancelled.value = true;
+      return true;
+    }
+
+    return false;
+  }
+}
+
 function applyAbAttrsInternal<TAttr extends AbAttr>(attrType: { new(...args: any[]): TAttr },
   pokemon: Pokemon, applyFunc: AbAttrApplyFunc<TAttr>, args: any[], isAsync: boolean = false, showAbilityInstant: boolean = false, quiet: boolean = false, passive: boolean = false): Promise<void> {
   return new Promise(resolve => {
@@ -3384,8 +3408,9 @@ export function initAbilities() {
       .attr(UnsuppressableAbilityAbAttr)
       .attr(NoFusionAbilityAbAttr)
       .partial(),
-    new Ability(Abilities.CORROSION, 7)
-      .unimplemented(),
+    new Ability(Abilities.CORROSION, 7) // TODO: Test Corrosion against Magic Bounce once it is implemented
+      .attr(IgnoreTypeStatusEffectImmunityAbAttr, [StatusEffect.POISON, StatusEffect.TOXIC], [Type.STEEL, Type.POISON])
+      .partial(),
     new Ability(Abilities.COMATOSE, 7)
       .attr(UncopiableAbilityAbAttr)
       .attr(UnswappableAbilityAbAttr)
