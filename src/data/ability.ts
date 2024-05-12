@@ -1646,6 +1646,12 @@ export class ProtectStatAbAttr extends PreStatChangeAbAttr {
   }
 }
 
+/**
+ * Extends from {@link ProtectStatAbAttr} to allow abilities to mark that they can protect allies from stat changes.
+ * Requires the Affected Pokemon to then check if ally has any ability with this attribute and apply the effect.
+ */
+export class AllyProtectStatAbAttr extends ProtectStatAbAttr { }
+
 export class PreSetStatusAbAttr extends AbAttr {
   applyPreSetStatus(pokemon: Pokemon, passive: boolean, effect: StatusEffect, cancelled: Utils.BooleanHolder, args: any[]): boolean | Promise<boolean> {
     return false;
@@ -1675,6 +1681,12 @@ export class StatusEffectImmunityAbAttr extends PreSetStatusAbAttr {
   }
 }
 
+/**
+ * Extends from {@link StatusEffectImmunityAbAttr} to allow abilities to mark that they can protect allies from status effects.
+ * Requires the Affected Pokemon to then check if ally has any ability with this attribute and apply the effect.
+ */
+export class AllyStatusEffectImmunityAbAttr extends StatusEffectImmunityAbAttr { }
+
 export class PreApplyBattlerTagAbAttr extends AbAttr {
   applyPreApplyBattlerTag(pokemon: Pokemon, passive: boolean, tag: BattlerTag, cancelled: Utils.BooleanHolder, args: any[]): boolean | Promise<boolean> {
     return false;
@@ -1703,6 +1715,12 @@ export class BattlerTagImmunityAbAttr extends PreApplyBattlerTagAbAttr {
     return getPokemonMessage(pokemon, `'s ${abilityName}\nprevents ${(args[0] as BattlerTag).getDescriptor()}!`);
   }
 }
+
+/**
+ * Extends from {@link BattlerTagImmunityAbAttr} to allow abilities to mark that they can protect allies from battler tags.
+ * Requires the Affected Pokemon to then check if ally has any ability with this attribute and apply the effect.
+ */
+export class AllyBattlerTagImmunityAbAttr extends BattlerTagImmunityAbAttr { }
 
 export class BlockCritAbAttr extends AbAttr {
   apply(pokemon: Pokemon, passive: boolean, cancelled: Utils.BooleanHolder, args: any[]): boolean {
@@ -3236,9 +3254,16 @@ export function initAbilities() {
     new Ability(Abilities.AROMA_VEIL, 6)
       .ignorable()
       .unimplemented(),
-    new Ability(Abilities.FLOWER_VEIL, 6)
+    new Ability(Abilities.FLOWER_VEIL, 6) // TODO: Check against Spectral Thief once implemented, check against Toxic orb and flame orb once implemented.
+    // Also needs to not prevent the user from using Rest.
+      .conditionalAttr(p => (p.isOfType(Type.GRASS)), ProtectStatAbAttr)
+      .conditionalAttr(p => (p.isOfType(Type.GRASS)), AllyProtectStatAbAttr)
+      .conditionalAttr(p => (p.isOfType(Type.GRASS)), StatusEffectImmunityAbAttr)
+      .conditionalAttr(p => (p.isOfType(Type.GRASS)), AllyStatusEffectImmunityAbAttr)
+      .conditionalAttr(p => (p.isOfType(Type.GRASS)), BattlerTagImmunityAbAttr, BattlerTagType.DROWSY)
+      .conditionalAttr(p => (p.isOfType(Type.GRASS)), AllyBattlerTagImmunityAbAttr, BattlerTagType.DROWSY)
       .ignorable()
-      .unimplemented(),
+      .partial(), 
     new Ability(Abilities.CHEEK_POUCH, 6)
       .unimplemented(),
     new Ability(Abilities.PROTEAN, 6)
