@@ -1959,19 +1959,19 @@ export class BattleStatRatioPowerAttr extends VariablePowerAttr {
   apply(user: Pokemon, target: Pokemon, move: Move, args: any[]): boolean {
     const power = args[0] as Utils.NumberHolder;
 
-    const statRatio = target.getStat(this.stat) / user.getStat(this.stat);
+    const statRatio = target.getBattleStat(this.stat) / user.getBattleStat(this.stat);
     const statThresholds = [ 0.25, 1 / 3, 0.5, 1, -1 ];
-    let statThresholdPowers = [ 150, 120, 80, 60, 40 ];
+    const statThresholdPowers = [ 150, 120, 80, 60, 40 ];
 
     if (this.invert) {
       // Gyro ball uses a specific formula
-      let userSpeed = user.getBattleStat(this.stat);
+      const userSpeed = user.getBattleStat(this.stat);
       if (userSpeed < 1) {
         // Gen 6+ always have 1 base power
         power.value = 1;
         return true;
       } 
-      let bp = Math.floor(Math.min(150, 25 * target.getBattleStat(this.stat) / userSpeed + 1));
+      const bp = Math.floor(Math.min(150, 25 * target.getBattleStat(this.stat) / userSpeed + 1));
       power.value = bp;
       return true;
     }
