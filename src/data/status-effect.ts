@@ -171,7 +171,7 @@ export function getRandomStatus(statusA: Status, statusB: Status): Status {
   if (statusB === undefined || statusB.effect === StatusEffect.NONE || statusB.effect === StatusEffect.FAINT) {
     return statusA;
   }
-  
+
 
   return Utils.randIntRange(0, 2) ? statusA : statusB;
 }

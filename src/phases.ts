@@ -34,6 +34,7 @@ import { CheckTrappedAbAttr, IgnoreOpponentStatChangesAbAttr, PostAttackAbAttr, 
 import { Unlockables, getUnlockableName } from "./system/unlockables";
 import { getBiomeKey } from "./field/arena";
 import { BattleType, BattlerIndex, TurnCommand } from "./battle";
+import { Abilities } from "./data/enums/abilities";
 import { BattleSpec } from "./enums/battle-spec";
 import { Species } from "./data/enums/species";
 import { HealAchv, LevelAchv, achvs } from "./system/achv";
@@ -2975,27 +2976,39 @@ export class PostTurnStatusEffectPhase extends PokemonPhase {
 
       if (!cancelled.value) {
         this.scene.queueMessage(getPokemonMessage(pokemon, getStatusEffectActivationText(pokemon.status.effect)));
-        let damage: integer = 0;
+
+        let netEffect = 0;  // This variable now handles both healing and damage
+
         switch (pokemon.status.effect) {
           case StatusEffect.POISON:
-            damage = Math.max(pokemon.getMaxHp() >> 3, 1);
-            break;
           case StatusEffect.TOXIC:
-            damage = Math.max(Math.floor((pokemon.getMaxHp() / 16) * pokemon.status.turnCount), 1);
+            if (pokemon.hasAbility(Abilities.POISON_HEAL)) {  // Directly check for both ability and passives, hasAbility covers them both
+              netEffect = Math.max(pokemon.getMaxHp() >> 3, 1);  // Healing logic
+              this.scene.damageNumberHandler.add(pokemon, pokemon.heal(netEffect), HitResult.HEAL); // Apply healing
+            } else {
+              netEffect = (pokemon.status.effect === StatusEffect.TOXIC) ? // Toxic damage increases over time, Poison does not
+                Math.max(Math.floor((pokemon.getMaxHp() / 16) * pokemon.status.turnCount), 1) : // Applies if Toxic
+              Math.max(pokemon.getMaxHp() >> 3, 1); // Damage logic for Poison otherwise
+              this.scene.damageNumberHandler.add(pokemon, pokemon.damage(netEffect)); // Apply damage, this is built in now so that the Poison Heal ability isn't indiscriminate
+            }
             break;
           case StatusEffect.BURN:
-            damage = Math.max(pokemon.getMaxHp() >> 4, 1);
+            netEffect = Math.max(pokemon.getMaxHp() >> 4, 1);
+            this.scene.damageNumberHandler.add(pokemon, pokemon.damage(netEffect)); // Apply damage, same as above
             break;
         }
-        if (damage) {
-          this.scene.damageNumberHandler.add(this.getPokemon(), pokemon.damage(damage));
+
+        if (netEffect > 0) { // If poison-based damage was taken, play the corresponding animation
+          const animType = CommonAnim.POISON + (pokemon.status.effect - 1);
+          new CommonBattleAnim(animType, pokemon).play(this.scene, () => this.end());
           pokemon.updateInfo();
+        } else {
+          this.end();  // End the phase if no net effect to apply
         }
-        new CommonBattleAnim(CommonAnim.POISON + (pokemon.status.effect - 1), pokemon).play(this.scene, () => this.end());
-      } else
-        this.end();
-    } else
+      }
+    } else {
       this.end();
+    }
   }
 }
 
