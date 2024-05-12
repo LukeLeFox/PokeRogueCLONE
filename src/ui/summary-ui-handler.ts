@@ -29,7 +29,8 @@ enum Page {
 
 export enum SummaryUiMode {
   DEFAULT,
-  LEARN_MOVE
+  LEARN_MOVE,
+  RENAME,
 }
 
 export default class SummaryUiHandler extends UiHandler {
@@ -81,6 +82,10 @@ export default class SummaryUiHandler extends UiHandler {
   private moveCursor: integer;
   private selectedMoveIndex: integer;
 
+  private renamePokemon: boolean;
+  private newName: string;
+  private isCapitalized: boolean;
+  
   constructor(scene: BattleScene) {
     super(scene, Mode.SUMMARY);
   }
@@ -359,7 +364,7 @@ export default class SummaryUiHandler extends UiHandler {
       this.status.setFrame(this.pokemon.status ? StatusEffect[this.pokemon.status.effect].toLowerCase() : 'pokerus');
     } else
       this.hideStatus(!fromSummary);
-
+    
     return true;
   }
 
@@ -435,17 +440,32 @@ export default class SummaryUiHandler extends UiHandler {
             }
         }
       }
+    } else if (this.renamePokemon) {
+      if (button === Button.SUBMIT) {
+        this.pokemon.name = this.newName;
+        this.hideRenamePokemon();
+        success = true;
+      } else if (button === Button.CANCEL) {
+        this.hideRenamePokemon();
+        success = true;
+      }
     } else {
       if (button === Button.ACTION) {
         if (this.cursor === Page.MOVES) {
           this.showMoveSelect();
           success = true;
+        } else if (this.cursor === Page.STATUS) {
+          this.showRenamePokemon();
+          success = true;
         }
       } else if (button === Button.CANCEL) {
-        if (this.summaryUiMode === SummaryUiMode.LEARN_MOVE)
+        if (this.summaryUiMode === SummaryUiMode.LEARN_MOVE) {
           this.hideMoveSelect();
-        else
+        } else if (this.summaryUiMode === SummaryUiMode.RENAME) {
+          this.hideRenamePokemon();
+        } else {
           ui.setMode(Mode.PARTY);
+        }
         success = true;
       } else {
         const pages = Utils.getEnumValues(Page);
@@ -922,6 +942,17 @@ export default class SummaryUiHandler extends UiHandler {
     return null;
   }
 
+  showRenamePokemon() {
+    this.renamePokemon = true;
+    this.newName = this.pokemon.name;
+    this.isCapitalized = true;
+  }
+  hideRenamePokemon() {
+    this.renamePokemon = false;
+    this.newName = this.pokemon.name;
+    this.isCapitalized = true;
+  }
+  
   showMoveSelect() {
     this.moveSelect = true;
     this.extraMoveRowContainer.setVisible(true);
@@ -1005,6 +1036,11 @@ export default class SummaryUiHandler extends UiHandler {
         this.selectedMoveCursorObj = null;
       }
       this.hideMoveEffect(true);
+    }
+    if (this.renamePokemon) {
+      this.renamePokemon = false;
+      this.newName = this.pokemon.name;
+      this.isCapitalized = true;
     }
     this.summaryContainer.setVisible(false);
     this.summaryPageContainer.setVisible(false);
