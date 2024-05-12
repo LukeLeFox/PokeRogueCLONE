@@ -1842,6 +1842,83 @@ export class HpSplitAttr extends MoveEffectAttr {
   }
 }
 
+/**
+  * Attribute used for moves which split the user and the target's offensive raw stats.
+  * This attribute is used for the move Power Split.
+*/
+export class PowerSplitAttr extends MoveEffectAttr {
+  /**
+   * Applying Power Split to the user and the target.
+   * @param {Pokemon} user The pokemon using the move.
+   * @param {Pokemon} target The targeted pokemon of the move.
+   * @param {Move} move The move used.
+   * @param {any} args N/A
+   * @returns {boolean} True if power split is applied successfully.
+   */
+  apply(user: Pokemon, target: Pokemon, move: Move, args: any[]) : Promise<boolean> {
+    return new Promise(resolve => {
+
+      if (!super.apply(user, target, move, args))
+        return resolve(false);
+
+      const infoUpdates = [];
+
+      const attackValue = Math.floor((target.getStat(Stat.ATK) + user.getStat(Stat.ATK)) / 2);
+      user.changeSummonStat(Stat.ATK, attackValue);
+      infoUpdates.push(user.updateInfo());
+      target.changeSummonStat(Stat.ATK, attackValue);
+      infoUpdates.push(target.updateInfo());
+
+      const specialAttackValue = Math.floor((target.getStat(Stat.SPATK) + user.getStat(Stat.SPATK)) / 2);
+      user.changeSummonStat(Stat.SPATK, specialAttackValue);
+      infoUpdates.push(user.updateInfo());
+      target.changeSummonStat(Stat.SPATK, specialAttackValue);
+      infoUpdates.push(target.updateInfo());
+
+      return Promise.all(infoUpdates).then(() => resolve(true));
+    });
+  }
+}
+
+/**
+  * Attribute used for moves which split the user and the target's defensive raw stats.
+  * This attribute is used for the move Guard Split.
+*/
+export class GuardSplitAttr extends MoveEffectAttr {
+  /**
+   * Applying Guard Split to the user and the target.
+   * @param {Pokemon} user The pokemon using the move.
+   * @param {Pokemon} target The targeted pokemon of the move.
+   * @param {Move} move The move used.
+   * @param {any} args N/A
+   * @returns {boolean} True if power split is applied successfully.
+   */
+  apply(user: Pokemon, target: Pokemon, move: Move, args: any[]): Promise<boolean> {
+    return new Promise(resolve => {
+      if (!super.apply(user, target, move, args))
+        return resolve(false);
+
+      const infoUpdates = [];
+
+      const defenseValue = Math.floor((target.getStat(Stat.DEF) + user.getStat(Stat.DEF)) / 2);
+      user.changeSummonStat(Stat.DEF, defenseValue);
+      infoUpdates.push(user.updateInfo());
+      target.changeSummonStat(Stat.DEF, defenseValue);
+      infoUpdates.push(target.updateInfo());
+
+      const specialDefenseValue = Math.floor((target.getStat(Stat.SPDEF) + user.getStat(Stat.SPDEF)) / 2);
+      user.changeSummonStat(Stat.SPDEF, specialDefenseValue);
+      infoUpdates.push(user.updateInfo());
+      target.changeSummonStat(Stat.SPDEF, specialDefenseValue);
+      infoUpdates.push(target.updateInfo());
+
+
+      return Promise.all(infoUpdates).then(() => resolve(true));
+    });
+  }
+
+}
+
 export class VariablePowerAttr extends MoveAttr {
   apply(user: Pokemon, target: Pokemon, move: Move, args: any[]): boolean {
     //const power = args[0] as Utils.NumberHolder;
@@ -5424,9 +5501,9 @@ export function initMoves() {
       .target(MoveTarget.USER_SIDE)
       .unimplemented(),
     new StatusMove(Moves.GUARD_SPLIT, Type.PSYCHIC, -1, 10, -1, 0, 5)
-      .unimplemented(),
+      .attr(GuardSplitAttr),
     new StatusMove(Moves.POWER_SPLIT, Type.PSYCHIC, -1, 10, -1, 0, 5)
-      .unimplemented(),
+      .attr(PowerSplitAttr),
     new StatusMove(Moves.WONDER_ROOM, Type.PSYCHIC, -1, 10, -1, 0, 5)
       .ignoresProtect()
       .target(MoveTarget.BOTH_SIDES)

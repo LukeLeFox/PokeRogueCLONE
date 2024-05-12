@@ -545,7 +545,11 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
   }
 
   getStat(stat: Stat): integer {
-    return this.stats[stat];
+    if (!this.summonData) {
+      return this.stats[stat];
+    }
+
+    return this.summonData.stats[stat];
   }
 
   getBattleStat(stat: Stat, opponent?: Pokemon, move?: Move, isCritical: boolean = false): integer {
@@ -1703,6 +1707,10 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
     return healAmount;
   }
 
+  changeSummonStat(stat: Stat, value: integer) : void {
+    this.summonData.stats[stat] = value;
+  }
+  
   isBossImmune(): boolean {
     return this.isBoss();
   }
@@ -2140,6 +2148,7 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
     if (!this.battleData)
       this.resetBattleData();
     this.resetBattleSummonData();
+    this.summonData.stats = this.stats;
     if (this.summonDataPrimer) {
       for (let k of Object.keys(this.summonData)) {
         if (this.summonDataPrimer[k])
