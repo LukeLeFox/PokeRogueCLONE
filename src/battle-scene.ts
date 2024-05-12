@@ -125,6 +125,7 @@ export default class BattleScene extends SceneBase {
 	public gameData: GameData;
 	public sessionSlotId: integer;
 
+	// can debug phases using "phase.constructor.name"
 	private phaseQueue: Phase[];
 	private phaseQueuePrepend: Phase[];
 	private phaseQueuePrependSpliceIndex: integer;
@@ -1495,6 +1496,8 @@ export default class BattleScene extends SceneBase {
 			this.phaseQueuePrepend.push(phase);
 		else
 			this.phaseQueuePrepend.splice(this.phaseQueuePrependSpliceIndex, 0, phase);
+		// debug: printing out phase queue
+		//this.phaseQueuePrepend.forEach(p => console.log(p.constructor.name));
 	}
 
 	clearPhaseQueue(): void {

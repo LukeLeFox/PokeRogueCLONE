@@ -1599,6 +1599,7 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
 
           console.log('damage', damage.value, move.name, power.value, sourceAtk, targetDef);
 
+
           if (damage.value) {
             if (this.getHpRatio() === 1)
               applyPreDefendAbAttrs(PreDefendFullHpEndureAbAttr, this, source, battlerMove, cancelled, damage);
@@ -1606,11 +1607,32 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
               this.scene.applyModifiers(EnemyEndureChanceModifier, false, this);
 
             const oneHitKo = result === HitResult.ONE_HIT_KO;
-            damage.value = this.damageAndUpdate(damage.value, result as DamageResult, isCritical, oneHitKo, oneHitKo);
+
+            // damageAndUpdate: will queue potential messages for critical hit, effectiveness, fainted - in that order
+            // requires passing in hitsLeft
+            damage.value = this.damageAndUpdate(damage.value, result as DamageResult, isCritical, oneHitKo, oneHitKo, source.turnData.hitsLeft);
             this.turnData.damageTaken += damage.value;
-            if (isCritical)
-              this.scene.queueMessage(i18next.t('battle:hitResultCriticalHit'));
-            this.scene.setPhaseQueueSplice();
+
+            // hitsLeft: for multi-hit moves, only want to render effectiveness text at end.
+            // also want to render if a pokemon fainted
+            console.log(`the number of hits left for this turn for ${this.name} is ${source.turnData.hitsLeft}`)
+            if (source.turnData.hitsLeft === 1 || this.isFainted()) {
+              switch (result as HitResult) {
+                case HitResult.SUPER_EFFECTIVE:
+                  this.scene.queueMessage(i18next.t('battle:hitResultSuperEffective'));
+                  break;
+                case HitResult.NOT_VERY_EFFECTIVE:
+                  this.scene.queueMessage(i18next.t('battle:hitResultNotVeryEffective'));
+                  break;
+                case HitResult.NO_EFFECT:
+                  this.scene.queueMessage(i18next.t('battle:hitResultNoEffect', { pokemonName: this.name }));
+                  break;
+                case HitResult.ONE_HIT_KO:  
+                  this.scene.queueMessage(i18next.t('battle:hitResultOneHitKO'));
+                  break;
+              }
+            }
+
             if (source.isPlayer()) {
               this.scene.validateAchvs(DamageAchv, damage);
               if (damage.value > this.scene.gameData.gameStats.highestDamage)
@@ -1622,22 +1644,23 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
             this.turnData.attacksReceived.unshift(attackResult);
             if (source.isPlayer() && !this.isPlayer())
               this.scene.applyModifiers(DamageMoneyRewardModifier, true, source, damage)
-          }
 
-          if (source.turnData.hitsLeft === 1) {
-            switch (result) {
-              case HitResult.SUPER_EFFECTIVE:
-                this.scene.queueMessage(i18next.t('battle:hitResultSuperEffective'));
-                break;
-              case HitResult.NOT_VERY_EFFECTIVE:
-                this.scene.queueMessage(i18next.t('battle:hitResultNotVeryEffective'));
-                break;
-              case HitResult.NO_EFFECT:
-                this.scene.queueMessage(i18next.t('battle:hitResultNoEffect', { pokemonName: this.name }));
-                break;
-              case HitResult.ONE_HIT_KO:  
-                this.scene.queueMessage(i18next.t('battle:hitResultOneHitKO'));
-                break;
+            // case when multi hit move killed early, then queue how many hits were made before
+            // eg: bullet seed 1 shots, double-slap 1 shots, 
+            // note that simply looking at this.turnData.attacksReceived doesn't work for double battles
+            if (this.isFainted() && source.turnData.hitsLeft > 1){
+              console.log(`${this.name} fainted: they received this many hits: ${this.turnData.attacksReceived.length}`);
+              // off by one from decrement, test more
+              const hitsTotal = source.turnData.hitCount - Math.max(source.turnData.hitsLeft, 0) + 1;
+              this.scene.queueMessage(i18next.t('battle:attackHitsCount', { count: hitsTotal}));
+            }
+
+            // not sure what this set function  is accomplishing, perhaps for the faint phase? it messes up with the queueMessage()
+            this.scene.setPhaseQueueSplice();
+
+            if (this.isFainted()) {
+              this.scene.unshiftPhase(new FaintPhase(this.scene, this.getBattlerIndex(), oneHitKo));
+              this.resetSummonData();
             }
           }
 
@@ -1680,17 +1703,19 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
     damage = Math.min(damage, this.hp);
 
     this.hp = this.hp - damage;
-    if (this.isFainted()) {
-      this.scene.unshiftPhase(new FaintPhase(this.scene, this.getBattlerIndex(), preventEndure));
-      this.resetSummonData();
-    }
+    // checks and adds Fainted scene
 
     return damage;
   }
 
-  damageAndUpdate(damage: integer, result?: DamageResult, critical: boolean = false, ignoreSegments: boolean = false, preventEndure: boolean = false): integer {
+  damageAndUpdate(damage: integer, result?: DamageResult, critical: boolean = false, ignoreSegments: boolean = false, preventEndure: boolean = false, hitsLeft: integer = 1): integer {
     const damagePhase = new DamagePhase(this.scene, this.getBattlerIndex(), damage, result as DamageResult, critical);
     this.scene.unshiftPhase(damagePhase);
+    // queue critical message before effectiveness
+    if (critical)
+      this.scene.queueMessage(i18next.t('battle:hitResultCriticalHit'));
+
+
     damage = this.damage(damage, ignoreSegments, preventEndure);
     // Damage amount may have changed, but needed to be queued before calling damage function
     damagePhase.updateAmount(damage);
