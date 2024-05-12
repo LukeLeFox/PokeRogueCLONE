@@ -2621,6 +2621,16 @@ export class WaterSuperEffectTypeMultiplierAttr extends VariableMoveTypeMultipli
   }
 }
 
+export class IceNoEffectTypeAttr extends VariableMoveTypeMultiplierAttr {
+   apply(user: Pokemon, target: Pokemon, move: Move, args: any[]): boolean {
+    if (target.isOfType(Type.ICE)) {
+      (args[0] as Utils.BooleanHolder).value = false;
+      return false;
+    }
+    return true;
+  }
+}
+
 export class FlyingTypeMultiplierAttr extends VariableMoveTypeMultiplierAttr {
   apply(user: Pokemon, target: Pokemon, move: Move, args: any[]): boolean {
     const multiplier = args[0] as Utils.NumberHolder;
@@ -2636,6 +2646,23 @@ export class OneHitKOAccuracyAttr extends VariableAccuracyAttr {
       accuracy.value = 0;
     else
       accuracy.value = Math.min(Math.max(30 + 100 * (1 - target.level / user.level), 0), 100);
+    return true;
+  }
+}
+
+export class SheerColdAccuracyAttr extends OneHitKOAccuracyAttr {
+  apply(user: Pokemon, target: Pokemon, move: Move, args: any[]): boolean {
+    const accuracy = args[0] as Utils.NumberHolder;
+      if (user.level < target.level) {
+          accuracy.value = 0;
+      } else { 
+          if (user.isOfType(Type.ICE)) {
+              accuracy.value = Math.min(Math.max(30 + 100 * (1 - target.level / user.level), 0), 100);
+          }
+          else {
+              accuracy.value = Math.min(Math.max(20 + 100 * (1 - target.level / user.level), 0), 100);
+          }
+      }
     return true;
   }
 }
@@ -5039,9 +5066,10 @@ export function initMoves() {
     new AttackMove(Moves.SAND_TOMB, Type.GROUND, MoveCategory.PHYSICAL, 35, 85, 15, 100, 0, 3)
       .attr(TrapAttr, BattlerTagType.SAND_TOMB)
       .makesContact(false),
-    new AttackMove(Moves.SHEER_COLD, Type.ICE, MoveCategory.SPECIAL, 200, 30, 5, -1, 0, 3)
+    new AttackMove(Moves.SHEER_COLD, Type.ICE, MoveCategory.SPECIAL, 200, 20, 5, -1, 0, 3)
+      .attr(IceNoEffectTypeAttr)
       .attr(OneHitKOAttr)
-      .attr(OneHitKOAccuracyAttr),
+      .attr(SheerColdAccuracyAttr),
     new AttackMove(Moves.MUDDY_WATER, Type.WATER, MoveCategory.SPECIAL, 90, 85, 10, 30, 0, 3)
       .attr(StatChangeAttr, BattleStat.ACC, -1)
       .target(MoveTarget.ALL_NEAR_ENEMIES),
